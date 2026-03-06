@@ -33,14 +33,12 @@ class UserLogin(BaseModel):
 
 # --- Auth Helpers using built-in hashlib (no extra deps needed) ---
 def get_password_hash(password: str) -> str:
-    """Hash password using SHA-256 with a random salt."""
     salt = secrets.token_hex(16)
     hashed = hashlib.sha256((salt + password).encode()).hexdigest()
     return f"{salt}:{hashed}"
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its stored hash."""
     try:
         salt, stored_hash = hashed_password.split(":")
         computed = hashlib.sha256((salt + plain_password).encode()).hexdigest()
@@ -48,8 +46,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except Exception:
         return False
 
-
-# --- Routes ---
 
 @router.post("/register")
 async def register(user: User):
@@ -86,6 +82,6 @@ async def get_users():
     cursor = users_collection.find()
     async for user in cursor:
         user["_id"] = str(user["_id"])
-        user.pop("password", None)  # Never expose passwords
+        user.pop("password", None)
         users.append(user)
     return users
