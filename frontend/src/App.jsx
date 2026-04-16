@@ -179,7 +179,6 @@ function App() {
               </div>
             </section>
           </>
-          </section>
         ) : view === 'hospitals' ? (
           <section className="hospitals-management">
             <div className="card" style={{ padding: '2rem', marginBottom: '2rem' }}>
