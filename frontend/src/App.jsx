@@ -4,8 +4,10 @@ import './index.css';
 function App() {
   const [reports, setReports] = useState([]);
   const [users, setUsers] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('dashboard');
+  const [newHospital, setNewHospital] = useState({ name: '', phone: '', category: 'General' });
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -30,9 +32,20 @@ function App() {
       }
     };
 
+    const fetchHospitals = async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const response = await fetch(`${baseUrl}/hospitals`);
+        const data = await response.json();
+        setHospitals(data);
+      } catch (err) {
+        console.error("Failed to fetch hospitals:", err);
+      }
+    };
+
     const initialFetch = async () => {
       setLoading(true);
-      await Promise.all([fetchReports(), fetchUsers()]);
+      await Promise.all([fetchReports(), fetchUsers(), fetchHospitals()]);
       setLoading(false);
     };
 
@@ -40,6 +53,7 @@ function App() {
     const interval = setInterval(() => {
       fetchReports();
       fetchUsers();
+      fetchHospitals();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -51,6 +65,24 @@ function App() {
     if (risk === 'Red') return { color: '#ef4444', fontWeight: 'bold' };
     if (risk === 'Yellow') return { color: '#f59e0b', fontWeight: 'bold' };
     return { color: '#10b981', fontWeight: 'bold' };
+  };
+
+  const handleAddHospital = async (e) => {
+    e.preventDefault();
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${baseUrl}/hospitals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newHospital),
+      });
+      if (response.ok) {
+        setNewHospital({ name: '', phone: '', category: 'General' });
+        // fetchHospitals() inside useEffect interval will update the list
+      }
+    } catch (err) {
+      console.error("Failed to add hospital:", err);
+    }
   };
 
   return (
@@ -72,6 +104,13 @@ function App() {
               onClick={() => setView('patients')}
             >
               👥 Patients
+            </li>
+            <li
+              className={`btn ${view === 'hospitals' ? 'active' : ''}`}
+              style={{ marginBottom: '1rem', cursor: 'pointer', padding: '10px', borderRadius: '8px', backgroundColor: view === 'hospitals' ? '#4f46e5' : 'transparent', color: view === 'hospitals' ? 'white' : '#94a3b8' }}
+              onClick={() => setView('hospitals')}
+            >
+              🏥 Hospitals
             </li>
             <li style={{ marginBottom: '1rem', color: '#334155', padding: '10px' }}>🔔 Alerts</li>
             <li style={{ marginBottom: '1rem', color: '#334155', padding: '10px' }}>📈 Analytics</li>
@@ -140,6 +179,69 @@ function App() {
               </div>
             </section>
           </>
+          </section>
+        ) : view === 'hospitals' ? (
+          <section className="hospitals-management">
+            <div className="card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+              <h3>Add New Hospital</h3>
+              <form onSubmit={handleAddHospital} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '1rem' }}>
+                <input
+                  type="text"
+                  placeholder="Hospital Name"
+                  className="input"
+                  value={newHospital.name}
+                  onChange={(e) => setNewHospital({...newHospital, name: e.target.value})}
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Phone Number"
+                  className="input"
+                  value={newHospital.phone}
+                  onChange={(e) => setNewHospital({...newHospital, phone: e.target.value})}
+                  required
+                />
+                <select
+                  className="input"
+                  value={newHospital.category}
+                  onChange={(e) => setNewHospital({...newHospital, category: e.target.value})}
+                >
+                  <option value="General">General</option>
+                  <option value="Multi-Speciality & Major Hospitals">Multi-Speciality & Major Hospitals</option>
+                  <option value="Government & Public Hospitals">Government & Public Hospitals</option>
+                  <option value="Heart / Critical / Specialty Care">Heart / Critical / Specialty Care</option>
+                  <option value="Orthopaedic / Trauma / General">Orthopaedic / Trauma / General</option>
+                  <option value="Private Multi-Speciality">Private Multi-Speciality</option>
+                  <option value="Women & Child Care">Women & Child Care</option>
+                </select>
+                <button type="submit" className="btn" style={{ backgroundColor: '#4f46e5', color: 'white' }}>➕ Add Hospital</button>
+              </form>
+            </div>
+
+            <div className="card" style={{ padding: '2rem' }}>
+              <h3>Hospital Directory</h3>
+              <table className="table" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ color: '#94a3b8', borderBottom: '1px solid #334155' }}>
+                    <th style={{ padding: '1rem' }}>Name</th>
+                    <th>Category</th>
+                    <th>Phone</th>
+                    <th>Location</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hospitals.map((h) => (
+                    <tr key={h._id} style={{ borderBottom: '1px solid #334155' }}>
+                      <td style={{ padding: '1rem', fontWeight: 'bold' }}>{h.name}</td>
+                      <td><span style={{ backgroundColor: '#1e293b', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>{h.category}</span></td>
+                      <td style={{ color: '#10b981' }}>{h.phone}</td>
+                      <td style={{ color: '#94a3b8' }}>{h.address || 'Coimbatore'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         ) : (
           <section className="patients-list">
             <div className="card" style={{ padding: '2rem' }}>
